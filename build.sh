@@ -7,12 +7,15 @@ SUDO=""
 if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
 
 # 1. Update the machine first (always do this on a fresh VM)
+# Note: sudo drops exported variables, so DEBIAN_FRONTEND is passed on each
+# command, and the dpkg options stop config-file prompts from hanging the build.
 export DEBIAN_FRONTEND=noninteractive
-$SUDO apt-get update
-$SUDO apt-get dist-upgrade -y
+APT="$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold"
+$APT update
+$APT dist-upgrade
 
 # 2. Install build dependencies
-$SUDO apt-get install -y build-essential git
+$APT install build-essential git
 
 # 3. Build
 make clean

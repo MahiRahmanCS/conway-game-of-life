@@ -1,0 +1,28 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+
+      - name: Update, install deps and build
+        run: ./build.sh
+
+      - name: Smoke test
+        run: ./dist/conway 5
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: conway-linux-x86_64
+          path: |
+            dist/conway
+            dist/conway-linux-x86_64.tar.gz

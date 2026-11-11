@@ -12,13 +12,18 @@ if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
 export DEBIAN_FRONTEND=noninteractive
 APT="$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold"
 $APT update
-# Hold back snap-wrapper packages (e.g. firefox on GitHub's Ubuntu runners):
-# upgrading them needs the Snap Store, which runners can't reach, so
-# dist-upgrade hangs and then fails.
-SNAP_PKGS=$(dpkg-query -W -f='${Package} ${Version}\n' | awk '$2 ~ /snap/ {print $1}')
-if [ -n "$SNAP_PKGS" ]; then
-  echo "Holding snap-wrapper packages: $SNAP_PKGS"
-  $SUDO apt-mark hold $SNAP_PKGS
+# Hold back packages whose upgrade installs a snap (firefox etc. on GitHub's
+# Ubuntu runners): that needs the Snap Store, which runners can't reach, so
+# dist-upgrade hangs for ~30 minutes and then fails.
+HOLD=""
+for p in firefox thunderbird chromium-browser; do
+  if dpkg -s "$p" >/dev/null 2>&1; then HOLD="$HOLD $p"; fi
+done
+HOLD="$HOLD $(dpkg-query -W -f='${Package} ${Version}\n' | awk '$2 ~ /snap/ {print $1}')"
+HOLD=$(echo $HOLD)
+if [ -n "$HOLD" ]; then
+  echo "Holding packages: $HOLD"
+  $SUDO apt-mark hold $HOLD
 fi
 $APT dist-upgrade
 

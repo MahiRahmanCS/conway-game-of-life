@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Update, install deps and build
         run: ./build.sh
@@ -22,7 +22,7 @@ jobs:
         run: ./dist/conway 5
 
       - name: Upload executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: conway-linux-x86_64
           path: |

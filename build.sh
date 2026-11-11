@@ -12,6 +12,14 @@ if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
 export DEBIAN_FRONTEND=noninteractive
 APT="$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold"
 $APT update
+# Hold back snap-wrapper packages (e.g. firefox on GitHub's Ubuntu runners):
+# upgrading them needs the Snap Store, which runners can't reach, so
+# dist-upgrade hangs and then fails.
+SNAP_PKGS=$(dpkg-query -W -f='${Package} ${Version}\n' | awk '$2 ~ /snap/ {print $1}')
+if [ -n "$SNAP_PKGS" ]; then
+  echo "Holding snap-wrapper packages: $SNAP_PKGS"
+  $SUDO apt-mark hold $SNAP_PKGS
+fi
 $APT dist-upgrade
 
 # 2. Install build dependencies

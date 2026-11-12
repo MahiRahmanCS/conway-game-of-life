@@ -1,7 +1,7 @@
 name: Build
 
 on:
-  push:
+  push:            # every commit on any branch, and every pushed tag
   pull_request:
   workflow_dispatch:
 
@@ -22,9 +22,41 @@ jobs:
         run: ./dist/conway 5
 
       - name: Upload executable
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: conway-linux-x86_64
           path: |
             dist/conway
             dist/conway-linux-x86_64.tar.gz
+
+  # Runs only when a tag like v1.0 is pushed: publishes a GitHub release
+  # with the zip produced by the build job attached.
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: conway-linux-x86_64
+          path: dist
+
+      - name: Zip the build
+        run: cd dist && zip conway-linux-x86_64.zip conway conway-linux-x86_64.tar.gz
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/conway-linux-x86_64.zip \
+            dist/conway-linux-x86_64.tar.gz \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Amazing Conway's Game of Life $GITHUB_REF_NAME" \
+            --notes "First stable release of Conway's Game of Life.
+
+          Download \`conway-linux-x86_64.tar.gz\` (keeps the executable permission) or the zip, extract it, and run \`./conway 30\` to simulate 30 generations. Built on Ubuntu x86_64."

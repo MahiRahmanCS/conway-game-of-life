@@ -48,15 +48,14 @@ jobs:
       - name: Zip the build
         run: cd dist && zip conway-linux-x86_64.zip conway conway-linux-x86_64.tar.gz
 
-      - name: Create release
+      - name: Create release, or attach files if it already exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            dist/conway-linux-x86_64.zip \
-            dist/conway-linux-x86_64.tar.gz \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Amazing Conway's Game of Life $GITHUB_REF_NAME" \
-            --notes "First stable release of Conway's Game of Life.
-
-          Download \`conway-linux-x86_64.tar.gz\` (keeps the executable permission) or the zip, extract it, and run \`./conway 30\` to simulate 30 generations. Built on Ubuntu x86_64."
+          FILES="dist/conway-linux-x86_64.zip dist/conway-linux-x86_64.tar.gz"
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" $FILES --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$GITHUB_REF_NAME" $FILES --repo "$GITHUB_REPOSITORY" \
+              --title "Amazing Conway's Game of Life $GITHUB_REF_NAME" --generate-notes
+          fi
